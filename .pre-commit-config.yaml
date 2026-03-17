@@ -1,0 +1,21 @@
+repos:
+  - repo: https://github.com/mwouts/jupytext
+    rev: v1.16.1
+    hooks:
+      - id: jupytext
+        args: [--sync, --pipe, black]
+        additional_dependencies: [black]
+        files: '^notebooks/.*\.py$'
+
+  - repo: https://github.com/psf/black
+    rev: 24.4.2
+    hooks:
+      - id: black
+        exclude: '^(.*/)?scratch\.py$'
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: [--profile, black]
+        exclude: '^(.*/)?scratch\.py$'
