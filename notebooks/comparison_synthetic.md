@@ -1,39 +1,23 @@
-# ---
-# jupyter:
-#   jupytext:
-#     formats: py:percent,ipynb
-#     text_representation:
-#       extension: .py
-#       format_name: percent
-#       format_version: '1.3'
-#       jupytext_version: 1.19.1
-#   kernelspec:
-#     display_name: Python 3
-#     language: python
-#     name: python3
-# ---
+# Synthetic Experiments: MMD vs BOCPD
 
-# %% [markdown]
-# # Synthetic Experiments: MMD vs BOCPD
-#
-# Controlled experiments with planted change points to measure precision,
-# recall, detection latency, and credible-interval coverage — something
-# impossible with the real SPY data where ground-truth boundaries are unknown.
-#
-# **Experiment A** — Gaussian synthetic data (mean shift + variance shift):
-# baseline accuracy when BOCPD's model is correctly specified.
-#
-# **Experiment B** — Student-t synthetic data (df = 30 / 5 / 3): tests how
-# BOCPD's Gaussian assumption degrades under heavy tails while MMD remains
-# nonparametric.
-#
-# Each experiment is first shown for a single seed (visual diagnostics),
-# then averaged over 10 seeds to quantify typical behavior.
+Controlled experiments with planted change points to measure precision,
+recall, detection latency, and credible-interval coverage — something
+impossible with the real SPY data where ground-truth boundaries are unknown.
 
-# %% [markdown]
-# ## S0 — Configuration
+**Experiment A** — Gaussian synthetic data (mean shift + variance shift):
+baseline accuracy when BOCPD's model is correctly specified.
 
-# %%
+**Experiment B** — Student-t synthetic data (df = 30 / 5 / 3): tests how
+BOCPD's Gaussian assumption degrades under heavy tails while MMD remains
+nonparametric.
+
+Each experiment is first shown for a single seed (visual diagnostics),
+then averaged over 10 seeds to quantify typical behavior.
+
+## S0 — Configuration
+
+
+```python
 import os
 import time
 
@@ -80,12 +64,12 @@ def save_fig(fig, name):
         fig.savefig(
             os.path.join(FIGURES_DIR, name), dpi=200, bbox_inches="tight"
         )
+```
+
+### Helper functions
 
 
-# %% [markdown]
-# ### Helper functions
-
-# %%
+```python
 def make_synthetic_signal(segment_lengths, means, stds, seed=42):
     """Generate piecewise-Gaussian signal with known change points."""
     rng = np.random.default_rng(seed)
@@ -218,12 +202,12 @@ def run_mmd_on_synthetic(X, perm_seed=None):
     # Convert dates back to integer positions
     boundaries = [dates.get_loc(d) for d in mmd_boundary_dates]
     return boundaries, mmd_df
+```
+
+### Plotting helpers
 
 
-# %% [markdown]
-# ### Plotting helpers
-
-# %%
+```python
 COLOR_BOCPD = "#D85A30"
 COLOR_MMD = "#534AB7"
 COLOR_TRUE = "black"
@@ -298,35 +282,45 @@ def build_metrics_row(label, true_cps, bocpd_bounds, mmd_bounds, bocpd_bwb):
             "ci_coverage": float("nan"),  # MMD has no CI
         },
     ]
+```
+
+---
+## S1 — Experiment A: Gaussian Synthetic Data (single seed)
+
+BOCPD assumes Gaussian observations, so this is the correctly-specified
+setting. Two sub-experiments test mean shifts and variance shifts separately.
+We use seed=0 for visual illustration; multi-seed averages follow in S3.
+
+### A1: Mean Shift
 
 
-# %% [markdown]
-# ---
-# ## S1 — Experiment A: Gaussian Synthetic Data (single seed)
-#
-# BOCPD assumes Gaussian observations, so this is the correctly-specified
-# setting. Two sub-experiments test mean shifts and variance shifts separately.
-# We use seed=0 for visual illustration; multi-seed averages follow in S3.
-
-# %% [markdown]
-# ### A1: Mean Shift
-
-# %%
+```python
 seg_lengths_A = [SEGMENT_LENGTH] * N_SEGMENTS
 means_A1 = [0, 2, 0, -1, 1]
 stds_A1 = [1.0] * N_SEGMENTS
 
 X_A1, true_cps_A1 = make_synthetic_signal(seg_lengths_A, means_A1, stds_A1, seed=0)
 print(f"A1 signal: {len(X_A1)} observations, true CPs at {list(true_cps_A1)}")
+```
 
-# %%
+    A1 signal: 1000 observations, true CPs at [np.int64(200), np.int64(400), np.int64(600), np.int64(800)]
+
+
+
+```python
 bocpd_A1, bocpd_A1_raw, bocpd_A1_bwb = run_bocpd_on_synthetic(X_A1)
 mmd_A1, mmd_A1_df = run_mmd_on_synthetic(X_A1, perm_seed=0)
 
 print(f"BOCPD detected: {bocpd_A1}")
 print(f"MMD   detected: {mmd_A1}")
+```
 
-# %%
+    BOCPD detected: [209, 406, 617, 807, 948, 982]
+    MMD   detected: [195, 400, 790]
+
+
+
+```python
 fig_A1 = plot_three_panel(
     X_A1, true_cps_A1, bocpd_A1, mmd_A1,
     bocpd_A1_raw, mmd_A1_df,
@@ -334,25 +328,43 @@ fig_A1 = plot_three_panel(
 )
 save_fig(fig_A1, "synthetic_A1_mean_shift.png")
 plt.show()
+```
 
-# %% [markdown]
-# ### A2: Variance Shift
 
-# %%
+    
+![png](comparison_synthetic_files/comparison_synthetic_11_0.png)
+    
+
+
+### A2: Variance Shift
+
+
+```python
 means_A2 = [0.0] * N_SEGMENTS
 stds_A2 = [0.5, 2.0, 0.5, 1.5, 0.5]
 
 X_A2, true_cps_A2 = make_synthetic_signal(seg_lengths_A, means_A2, stds_A2, seed=0)
 print(f"A2 signal: {len(X_A2)} observations, true CPs at {list(true_cps_A2)}")
+```
 
-# %%
+    A2 signal: 1000 observations, true CPs at [np.int64(200), np.int64(400), np.int64(600), np.int64(800)]
+
+
+
+```python
 bocpd_A2, bocpd_A2_raw, bocpd_A2_bwb = run_bocpd_on_synthetic(X_A2)
 mmd_A2, mmd_A2_df = run_mmd_on_synthetic(X_A2, perm_seed=0)
 
 print(f"BOCPD detected: {bocpd_A2}")
 print(f"MMD   detected: {mmd_A2}")
+```
 
-# %%
+    BOCPD detected: [202, 412, 603, 740, 816]
+    MMD   detected: [200, 800]
+
+
+
+```python
 fig_A2 = plot_three_panel(
     X_A2, true_cps_A2, bocpd_A2, mmd_A2,
     bocpd_A2_raw, mmd_A2_df,
@@ -360,20 +372,26 @@ fig_A2 = plot_three_panel(
 )
 save_fig(fig_A2, "synthetic_A2_variance_shift.png")
 plt.show()
+```
 
-# %% [markdown]
-# ---
-# ## S2 — Experiment B: Gaussian Assumption Violation (single seed)
-#
-# We repeat the mean-shift task from A1 but generate observations from
-# Student-t distributions with decreasing degrees of freedom. As df drops,
-# the tails grow heavier and BOCPD's Gaussian assumption becomes
-# increasingly misspecified. Single seed=0 for illustration.
 
-# %% [markdown]
-# ### B3: df = 3 (heavy tails — most informative case)
+    
+![png](comparison_synthetic_files/comparison_synthetic_15_0.png)
+    
 
-# %%
+
+---
+## S2 — Experiment B: Gaussian Assumption Violation (single seed)
+
+We repeat the mean-shift task from A1 but generate observations from
+Student-t distributions with decreasing degrees of freedom. As df drops,
+the tails grow heavier and BOCPD's Gaussian assumption becomes
+increasingly misspecified. Single seed=0 for illustration.
+
+### B3: df = 3 (heavy tails — most informative case)
+
+
+```python
 means_B = means_A1  # same mean-shift pattern as A1
 scales_B = [1.0] * N_SEGMENTS
 dfs_B3 = [3] * N_SEGMENTS
@@ -388,8 +406,17 @@ mmd_B3, mmd_B3_df = run_mmd_on_synthetic(X_B3, perm_seed=0)
 
 print(f"BOCPD detected: {bocpd_B3}")
 print(f"MMD   detected: {mmd_B3}")
+```
 
-# %%
+    B3 signal: 1000 observations, df=3
+
+
+    BOCPD detected: [130, 167, 213, 379, 664, 859, 985]
+    MMD   detected: [200, 390, 800]
+
+
+
+```python
 fig_B3 = plot_three_panel(
     X_B3, true_cps_B, bocpd_B3, mmd_B3,
     bocpd_B3_raw, mmd_B3_df,
@@ -397,17 +424,24 @@ fig_B3 = plot_three_panel(
 )
 save_fig(fig_B3, "synthetic_B3_heavy_tails.png")
 plt.show()
+```
 
-# %% [markdown]
-# ---
-# ## S3 — Multi-Seed Evaluation
-#
-# Single-seed results can be misleading — a lucky or unlucky noise
-# realization may inflate or deflate metrics. Here we run all five scenarios
-# across 10 data-generation seeds, with matched permutation-test seeds, to
-# report mean ± standard deviation for each metric.
 
-# %%
+    
+![png](comparison_synthetic_files/comparison_synthetic_19_0.png)
+    
+
+
+---
+## S3 — Multi-Seed Evaluation
+
+Single-seed results can be misleading — a lucky or unlucky noise
+realization may inflate or deflate metrics. Here we run all five scenarios
+across 10 data-generation seeds, with matched permutation-test seeds, to
+report mean ± standard deviation for each metric.
+
+
+```python
 SCENARIOS = {
     "A1: Mean shift": {
         "generator": "gaussian",
@@ -488,8 +522,27 @@ for scenario_name, cfg in SCENARIOS.items():
 
 elapsed = time.perf_counter() - t0_total
 print(f"\nMulti-seed evaluation complete: {elapsed:.0f}s total")
+```
 
-# %%
+      A1: Mean shift: done (10 seeds)
+
+
+      A2: Variance shift: done (10 seeds)
+
+
+      B1: df=30: done (10 seeds)
+
+
+      B2: df=5: done (10 seeds)
+
+
+      B3: df=3: done (10 seeds)
+    
+    Multi-seed evaluation complete: 425s total
+
+
+
+```python
 multi_df = pd.DataFrame(all_rows)
 
 # Aggregate: mean ± std per scenario × method
@@ -515,11 +568,25 @@ for _, row in agg.iterrows():
         f"FP={row['fp_mean']:.1f}±{row['fp_std']:.1f}"
         f"{ci_str}"
     )
+```
 
-# %% [markdown]
-# ### Experiment A — Multi-Seed Summary
+    === Multi-Seed Metrics (mean ± std over 10 seeds) ===
+      A1: Mean shift       BOCPD  P=0.74±0.17  R=0.93±0.12  FP=1.5±1.2  CI cov: 0.90±0.17
+      A1: Mean shift       MMD    P=0.97±0.08  R=0.78±0.08  FP=0.1±0.3
+      A2: Variance shift   BOCPD  P=0.82±0.17  R=0.97±0.08  FP=1.0±1.1  CI cov: 1.00±0.00
+      A2: Variance shift   MMD    P=0.87±0.32  R=0.38±0.21  FP=0.1±0.3
+      B1: df=30            BOCPD  P=0.73±0.23  R=0.88±0.18  FP=1.5±1.4  CI cov: 0.93±0.17
+      B1: df=30            MMD    P=1.00±0.00  R=0.72±0.08  FP=0.0±0.0
+      B2: df=5             BOCPD  P=0.32±0.18  R=0.53±0.28  FP=4.2±1.3  CI cov: 0.88±0.13
+      B2: df=5             MMD    P=1.00±0.00  R=0.75±0.12  FP=0.0±0.0
+      B3: df=3             BOCPD  P=0.18±0.18  R=0.25±0.24  FP=4.6±2.2  CI cov: 0.62±0.24
+      B3: df=3             MMD    P=1.00±0.00  R=0.70±0.11  FP=0.0±0.0
 
-# %%
+
+### Experiment A — Multi-Seed Summary
+
+
+```python
 exp_a_scenarios = ["A1: Mean shift", "A2: Variance shift"]
 exp_a = agg[agg["scenario"].isin(exp_a_scenarios)]
 
@@ -555,11 +622,18 @@ axes_a[1].set_title("Experiment A: Recall (mean ± std, 10 seeds)")
 plt.tight_layout()
 save_fig(fig_a, "synthetic_A_multi_seed.png")
 plt.show()
+```
 
-# %% [markdown]
-# ### Experiment B — Multi-Seed Degradation
 
-# %%
+    
+![png](comparison_synthetic_files/comparison_synthetic_24_0.png)
+    
+
+
+### Experiment B — Multi-Seed Degradation
+
+
+```python
 exp_b_scenarios = ["B1: df=30", "B2: df=5", "B3: df=3"]
 exp_b = agg[agg["scenario"].isin(exp_b_scenarios)]
 
@@ -596,11 +670,18 @@ axes_b[1].set_title("Recall Degradation (mean ± std, 10 seeds)")
 plt.tight_layout()
 save_fig(fig_b, "synthetic_B_degradation.png")
 plt.show()
+```
 
-# %% [markdown]
-# ### BOCPD CI Coverage across Seeds
 
-# %%
+    
+![png](comparison_synthetic_files/comparison_synthetic_26_0.png)
+    
+
+
+### BOCPD CI Coverage across Seeds
+
+
+```python
 bocpd_multi = multi_df[multi_df["method"] == "BOCPD"]
 
 fig_ci, ax_ci = plt.subplots(figsize=(8, 4))
@@ -628,43 +709,49 @@ ax_ci.legend()
 plt.tight_layout()
 save_fig(fig_ci, "synthetic_ci_coverage.png")
 plt.show()
+```
 
-# %% [markdown]
-# ### Discussion
-#
-# The multi-seed results above give a more reliable picture than any single
-# realization. Commentary is based on the averaged metrics:
-#
-# **Experiment A (Gaussian — correctly specified):**
-# Under correct specification, BOCPD achieves high recall on both mean
-# shifts (0.93) and variance shifts (0.97), rarely missing a true CP.
-# The cost is occasional false positives (1-2 per run on average),
-# pulling precision to 0.74–0.82. MMD is more conservative on mean
-# shifts: near-perfect precision (0.97) but recall of 0.78 due to
-# missed small-magnitude transitions. On variance shifts, MMD struggles
-# significantly (recall 0.38) — the RBF kernel bandwidth, tuned to the
-# overall scale of the data, is less sensitive to scale-only changes
-# than BOCPD's explicit variance tracking. BOCPD's CI coverage sits
-# right at the 90% target for A1 and at 100% for A2, indicating
-# well-calibrated credible intervals under correct specification.
-#
-# **Experiment B (Student-t — misspecification):**
-# - **df=30** (near-Gaussian): BOCPD performs similarly to the Gaussian
-#   baseline (precision 0.73, recall 0.88), confirming that mild excess
-#   kurtosis has negligible effect.
-# - **df=5** (moderate tails): BOCPD precision drops to 0.32 and recall
-#   to 0.53 as heavy-tailed outliers trigger spurious run-length resets.
-#   False positives triple (4.2 per run). CI coverage begins to erode
-#   (0.88).
-# - **df=3** (heavy tails): BOCPD degradation is severe — precision
-#   falls to 0.18, recall to 0.25, with 4.6 FPs per run on average.
-#   CI coverage drops to 0.62, well below the 90% target, confirming
-#   that the Gaussian-calibrated credible intervals are no longer
-#   reliable under heavy tails.
-#
-# MMD remains stable across all tail conditions (precision 1.00, recall
-# 0.70–0.75, zero FPs). Its kernel-based test statistic is inherently
-# nonparametric and does not rely on distributional assumptions, making
-# it robust to the misspecification that degrades BOCPD. The trade-off
-# is that MMD's windowed design consistently misses ~25% of change points
-# whose effect falls below the z-score threshold.
+
+    
+![png](comparison_synthetic_files/comparison_synthetic_28_0.png)
+    
+
+
+### Discussion
+
+The multi-seed results above give a more reliable picture than any single
+realization. Commentary is based on the averaged metrics:
+
+**Experiment A (Gaussian — correctly specified):**
+Under correct specification, BOCPD achieves high recall on both mean
+shifts (0.93) and variance shifts (0.97), rarely missing a true CP.
+The cost is occasional false positives (1-2 per run on average),
+pulling precision to 0.74–0.82. MMD is more conservative on mean
+shifts: near-perfect precision (0.97) but recall of 0.78 due to
+missed small-magnitude transitions. On variance shifts, MMD struggles
+significantly (recall 0.38) — the RBF kernel bandwidth, tuned to the
+overall scale of the data, is less sensitive to scale-only changes
+than BOCPD's explicit variance tracking. BOCPD's CI coverage sits
+right at the 90% target for A1 and at 100% for A2, indicating
+well-calibrated credible intervals under correct specification.
+
+**Experiment B (Student-t — misspecification):**
+- **df=30** (near-Gaussian): BOCPD performs similarly to the Gaussian
+  baseline (precision 0.73, recall 0.88), confirming that mild excess
+  kurtosis has negligible effect.
+- **df=5** (moderate tails): BOCPD precision drops to 0.32 and recall
+  to 0.53 as heavy-tailed outliers trigger spurious run-length resets.
+  False positives triple (4.2 per run). CI coverage begins to erode
+  (0.88).
+- **df=3** (heavy tails): BOCPD degradation is severe — precision
+  falls to 0.18, recall to 0.25, with 4.6 FPs per run on average.
+  CI coverage drops to 0.62, well below the 90% target, confirming
+  that the Gaussian-calibrated credible intervals are no longer
+  reliable under heavy tails.
+
+MMD remains stable across all tail conditions (precision 1.00, recall
+0.70–0.75, zero FPs). Its kernel-based test statistic is inherently
+nonparametric and does not rely on distributional assumptions, making
+it robust to the misspecification that degrades BOCPD. The trade-off
+is that MMD's windowed design consistently misses ~25% of change points
+whose effect falls below the z-score threshold.

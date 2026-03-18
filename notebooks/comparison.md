@@ -102,42 +102,42 @@ raw.head()
   <tbody>
     <tr>
       <th>2018-01-02</th>
-      <td>236.387377</td>
-      <td>237.243471</td>
-      <td>235.999045</td>
-      <td>237.208160</td>
+      <td>236.387438</td>
+      <td>237.243532</td>
+      <td>235.999105</td>
+      <td>237.208221</td>
       <td>86655700</td>
     </tr>
     <tr>
       <th>2018-01-03</th>
-      <td>237.375960</td>
-      <td>238.858697</td>
-      <td>237.375960</td>
-      <td>238.708649</td>
+      <td>237.375884</td>
+      <td>238.858621</td>
+      <td>237.375884</td>
+      <td>238.708572</td>
       <td>90070400</td>
     </tr>
     <tr>
       <th>2018-01-04</th>
-      <td>239.352831</td>
-      <td>240.200090</td>
-      <td>238.770332</td>
-      <td>239.714661</td>
+      <td>239.352922</td>
+      <td>240.200182</td>
+      <td>238.770423</td>
+      <td>239.714752</td>
       <td>80636400</td>
     </tr>
     <tr>
       <th>2018-01-05</th>
-      <td>240.509023</td>
-      <td>241.435710</td>
-      <td>240.014786</td>
-      <td>241.312164</td>
+      <td>240.509008</td>
+      <td>241.435695</td>
+      <td>240.014771</td>
+      <td>241.312149</td>
       <td>83524000</td>
     </tr>
     <tr>
       <th>2018-01-08</th>
-      <td>241.215082</td>
-      <td>241.912320</td>
-      <td>240.923846</td>
-      <td>241.753464</td>
+      <td>241.215021</td>
+      <td>241.912259</td>
+      <td>240.923785</td>
+      <td>241.753403</td>
       <td>57319200</td>
     </tr>
   </tbody>
@@ -282,7 +282,7 @@ for b in bocpd_uni_boundaries:
           f"90% CI: [{b['lower']}, {b['upper']}], severity: {b['severity']:.3f}")
 ```
 
-    BOCPD univariate: 9 boundaries, 5.82s
+    BOCPD univariate: 9 boundaries, 5.75s
       t=22 (2018-02-05), 90% CI: [15, 25], severity: 0.879
       t=194 (2018-10-10), 90% CI: [66, 193], severity: 0.990
       t=340 (2019-05-13), 90% CI: [252, 335], severity: 0.790
@@ -346,7 +346,7 @@ for b in bocpd_multi_boundaries:
           f"90% CI: [{b['lower']}, {b['upper']}], severity: {b['severity']:.3f}")
 ```
 
-    BOCPD multivariate: 4 boundaries, 1.01s
+    BOCPD multivariate: 4 boundaries, 1.02s
       t=542 (2020-03-02), 90% CI: [532, 538], severity: 0.989
       t=599 (2020-05-21), 90% CI: [596, 602], severity: 1.000
       t=1199 (2022-10-07), 90% CI: [598, 738], severity: 1.000
@@ -399,7 +399,7 @@ all_results.append(
 print(f"MMD univariate: {len(mmd_uni_boundaries)} boundaries, {runtime_mmd_uni:.2f}s")
 ```
 
-    MMD univariate: 1 boundaries, 7.90s
+    MMD univariate: 1 boundaries, 7.83s
 
 
 ### 2d: MMD -- Multivariate (log OHLCV)
@@ -440,7 +440,7 @@ all_results.append(
 print(f"MMD multivariate: {len(mmd_multi_boundaries)} boundaries, {runtime_mmd_multi:.2f}s")
 ```
 
-    MMD multivariate: 43 boundaries, 8.63s
+    MMD multivariate: 43 boundaries, 8.30s
 
 
 ---
@@ -766,10 +766,10 @@ print(mmd_sweep_df.to_string(index=False))
 
     MMD window size sweep (multivariate signal):
      window  n_boundaries  mean_abs_offset  runtime_s
-         20            25             17.2   6.587608
-         30            42             11.0   8.776597
-         40            53             11.8  10.701447
-         60            74             27.0  29.388475
+         20            25             17.2   6.616566
+         30            42             11.0   8.529276
+         40            53             11.8  10.602153
+         60            74             27.0  27.106680
 
 
 #### BOCPD hazard rate sweep (multivariate signal)
@@ -818,9 +818,9 @@ print(bocpd_sweep_df.to_string(index=False))
 
     BOCPD hazard rate sweep (multivariate signal):
      hazard_lambda  n_boundaries  mean_abs_offset  runtime_s
-                50             5             63.8   1.004375
-               100             4             63.4   0.973860
-               200             4             63.4   0.932760
+                50             5             63.8   0.954175
+               100             4             63.4   0.945429
+               200             4             63.4   1.006815
 
 
 #### Sensitivity sweep visualization
@@ -932,10 +932,10 @@ print(runtime_df.to_string(index=False))
 ```
 
                 Method Runtime (s)
-      BOCPD univariate        5.82
-    BOCPD multivariate        1.01
-        MMD univariate        7.90
-      MMD multivariate        8.63
+      BOCPD univariate        5.75
+    BOCPD multivariate        1.02
+        MMD univariate        7.83
+      MMD multivariate        8.30
 
 
 ### Assumptions comparison

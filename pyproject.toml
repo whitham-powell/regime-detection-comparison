@@ -15,17 +15,13 @@ dependencies = [
     "scikit-learn",
     "numpy",
     "pandas",
-]
-
-[project.optional-dependencies]
-dev = [
     "jupytext",
     "nbconvert",
     "ipykernel",
-    "pre-commit",
-    "black",
-    "isort",
 ]
+
+[project.optional-dependencies]
+dev = ["pre-commit", "black", "isort"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
