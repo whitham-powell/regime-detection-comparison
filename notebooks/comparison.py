@@ -37,6 +37,9 @@ from sklearn.preprocessing import StandardScaler
 SAVE_FIGURES = os.environ.get("SAVE_FIGURES", "0") == "1"
 FIGURES_DIR = "../figures"
 
+BOCPD_R_MAX = 600
+BOCPD_HAZARD_LAMBDA = 100
+
 KNOWN_EVENTS = {
     "COVID crash": ("2020-02-19", "2020-03-23"),
     "COVID recovery": ("2020-03-24", "2020-08-01"),
@@ -154,7 +157,8 @@ detector_bocpd_uni = BOCPD(
     model_factory=lambda: UnivariateNormalNIG(
         mu0=0.0, kappa0=0.1, alpha0=1.0, beta0=1.0
     ),
-    hazard_fn=ConstantHazard(lam=100),
+    hazard_fn=ConstantHazard(lam=BOCPD_HAZARD_LAMBDA),
+    r_max=BOCPD_R_MAX,
 )
 bocpd_uni_raw = detector_bocpd_uni.run(signal_uni)
 bocpd_uni_boundaries = extract_change_points_with_bounds(
@@ -179,7 +183,7 @@ all_results.append(
         "continuous_signal": pd.Series(bocpd_uni_erl, index=dates_index),
         "signal_label": "E[run length]",
         "runtime_seconds": runtime_bocpd_uni,
-        "config": {"hazard_lambda": 100, "kappa0": 0.1, "alpha0": 1.0, "beta0": 1.0},
+        "config": {"hazard_lambda": BOCPD_HAZARD_LAMBDA, "kappa0": 0.1, "alpha0": 1.0, "beta0": 1.0, "r_max": BOCPD_R_MAX},
     }
 )
 
@@ -206,7 +210,8 @@ detector_bocpd_multi = BOCPD(
         nu0=float(D + 2),
         Psi0=np.eye(D),
     ),
-    hazard_fn=ConstantHazard(lam=100),
+    hazard_fn=ConstantHazard(lam=BOCPD_HAZARD_LAMBDA),
+    r_max=BOCPD_R_MAX,
 )
 bocpd_multi_raw = detector_bocpd_multi.run(signal_multi)
 bocpd_multi_boundaries = extract_change_points_with_bounds(
@@ -229,7 +234,7 @@ all_results.append(
         "continuous_signal": pd.Series(bocpd_multi_erl, index=dates_index),
         "signal_label": "E[run length]",
         "runtime_seconds": runtime_bocpd_multi,
-        "config": {"hazard_lambda": 100, "kappa0": 0.1, "nu0": D + 2},
+        "config": {"hazard_lambda": BOCPD_HAZARD_LAMBDA, "kappa0": 0.1, "nu0": D + 2, "r_max": BOCPD_R_MAX},
     }
 )
 
@@ -520,6 +525,7 @@ for lam in hazard_lambdas:
             Psi0=np.eye(D),
         ),
         hazard_fn=ConstantHazard(lam=lam),
+        r_max=BOCPD_R_MAX,
     )
     res = det.run(signal_multi)
     bounds_raw = extract_change_points_with_bounds(res, credible_mass=0.90)
