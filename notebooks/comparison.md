@@ -1,32 +1,16 @@
-# ---
-# jupyter:
-#   jupytext:
-#     formats: py:percent,ipynb
-#     text_representation:
-#       extension: .py
-#       format_name: percent
-#       format_version: '1.3'
-#       jupytext_version: 1.19.1
-#   kernelspec:
-#     display_name: Python 3
-#     language: python
-#     name: python3
-# ---
+# Regime Detection Comparison: MMD vs BOCPD
 
-# %% [markdown]
-# # Regime Detection Comparison: MMD vs BOCPD
-#
-# Comparing nonparametric (MMD) and Bayesian (BOCPD) approaches to detecting
-# regime changes in SPY daily returns (2018-2024).
-#
-# **2x2 design**: each method is run on both univariate (log returns) and
-# multivariate (log OHLCV) signals to separate the framework effect from the
-# feature effect.
+Comparing nonparametric (MMD) and Bayesian (BOCPD) approaches to detecting
+regime changes in SPY daily returns (2018-2024).
 
-# %% [markdown]
-# ## Configuration
+**2x2 design**: each method is run on both univariate (log returns) and
+multivariate (log OHLCV) signals to separate the framework effect from the
+feature effect.
 
-# %%
+## Configuration
+
+
+```python
 import os
 import time
 
@@ -58,24 +42,112 @@ def save_fig(fig, name):
         fig.savefig(
             os.path.join(FIGURES_DIR, name), dpi=200, bbox_inches="tight"
         )
+```
+
+---
+## S1 -- Data Pipeline
+
+Fetch SPY via finfeatures, extract univariate and multivariate signal
+variants, standardize.
 
 
-# %% [markdown]
-# ---
-# ## S1 -- Data Pipeline
-#
-# Fetch SPY via finfeatures, extract univariate and multivariate signal
-# variants, standardize.
-
-# %%
+```python
 from finfeatures.sources import YFinanceSource
 
 source = YFinanceSource()
 raw = source.fetch("SPY", start="2018-01-01", end="2024-01-01")
 print(f"Raw data: {raw.shape[0]} rows, columns: {list(raw.columns)}")
 raw.head()
+```
 
-# %%
+    Raw data: 1509 rows, columns: ['open', 'high', 'low', 'close', 'volume']
+
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>open</th>
+      <th>high</th>
+      <th>low</th>
+      <th>close</th>
+      <th>volume</th>
+    </tr>
+    <tr>
+      <th>date</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>2018-01-02</th>
+      <td>236.387377</td>
+      <td>237.243471</td>
+      <td>235.999045</td>
+      <td>237.208160</td>
+      <td>86655700</td>
+    </tr>
+    <tr>
+      <th>2018-01-03</th>
+      <td>237.375960</td>
+      <td>238.858697</td>
+      <td>237.375960</td>
+      <td>238.708649</td>
+      <td>90070400</td>
+    </tr>
+    <tr>
+      <th>2018-01-04</th>
+      <td>239.352831</td>
+      <td>240.200090</td>
+      <td>238.770332</td>
+      <td>239.714661</td>
+      <td>80636400</td>
+    </tr>
+    <tr>
+      <th>2018-01-05</th>
+      <td>240.509023</td>
+      <td>241.435710</td>
+      <td>240.014786</td>
+      <td>241.312164</td>
+      <td>83524000</td>
+    </tr>
+    <tr>
+      <th>2018-01-08</th>
+      <td>241.215082</td>
+      <td>241.912320</td>
+      <td>240.923846</td>
+      <td>241.753464</td>
+      <td>57319200</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+```python
 # Construct signals from raw OHLCV
 # Univariate: log returns
 log_returns = np.log(raw["close"] / raw["close"].shift(1)).dropna()
@@ -109,8 +181,15 @@ dates_index = common_idx
 print(f"Univariate signal:   shape {signal_uni.shape}")
 print(f"Multivariate signal: shape {signal_multi.shape}")
 print(f"Date range: {dates_index[0].date()} to {dates_index[-1].date()}")
+```
 
-# %%
+    Univariate signal:   shape (1508,)
+    Multivariate signal: shape (1508, 5)
+    Date range: 2018-01-03 to 2023-12-29
+
+
+
+```python
 # Sanity check: price and log returns
 fig, axes = plt.subplots(2, 1, figsize=(14, 6), sharex=True)
 
@@ -130,23 +209,30 @@ for label, (start, end) in KNOWN_EVENTS.items():
 plt.tight_layout()
 save_fig(fig, "sanity_check.png")
 plt.show()
+```
 
 
-# %% [markdown]
-# ---
-# ## S2 -- Detection Runs
-#
-# Four configurations in the 2x2 design. Each is timed and produces a
-# consistent result dict.
+    
+![png](comparison_files/comparison_6_0.png)
+    
 
-# %%
+
+---
+## S2 -- Detection Runs
+
+Four configurations in the 2x2 design. Each is timed and produces a
+consistent result dict.
+
+
+```python
 # Container for all results
 all_results = []
+```
 
-# %% [markdown]
-# ### 2a: BOCPD -- Univariate (log returns)
+### 2a: BOCPD -- Univariate (log returns)
 
-# %%
+
+```python
 from bocpd import (
     BOCPD,
     ConstantHazard,
@@ -194,11 +280,24 @@ print(f"BOCPD univariate: {len(bocpd_uni_boundaries)} boundaries, {runtime_bocpd
 for b in bocpd_uni_boundaries:
     print(f"  t={b['index']} ({dates_index[b['index']].date()}), "
           f"90% CI: [{b['lower']}, {b['upper']}], severity: {b['severity']:.3f}")
+```
 
-# %% [markdown]
-# ### 2b: BOCPD -- Multivariate (log OHLCV)
+    BOCPD univariate: 9 boundaries, 5.82s
+      t=22 (2018-02-05), 90% CI: [15, 25], severity: 0.879
+      t=194 (2018-10-10), 90% CI: [66, 193], severity: 0.990
+      t=340 (2019-05-13), 90% CI: [252, 335], severity: 0.790
+      t=672 (2020-09-03), 90% CI: [624, 671], severity: 0.966
+      t=754 (2020-12-31), 90% CI: [613, 730], severity: 0.493
+      t=1029 (2022-02-03), 90% CI: [966, 1025], severity: 0.801
+      t=1164 (2022-08-18), 90% CI: [974, 1130], severity: 0.153
+      t=1223 (2022-11-10), 90% CI: [973, 1086], severity: 0.455
+      t=1334 (2023-04-24), 90% CI: [1223, 1312], severity: 0.645
 
-# %%
+
+### 2b: BOCPD -- Multivariate (log OHLCV)
+
+
+```python
 from bocpd import MultivariateNormalNIW
 
 t0 = time.perf_counter()
@@ -245,11 +344,19 @@ print(f"BOCPD multivariate: {len(bocpd_multi_boundaries)} boundaries, {runtime_b
 for b in bocpd_multi_boundaries:
     print(f"  t={b['index']} ({dates_index[b['index']].date()}), "
           f"90% CI: [{b['lower']}, {b['upper']}], severity: {b['severity']:.3f}")
+```
 
-# %% [markdown]
-# ### 2c: MMD -- Univariate (log returns)
+    BOCPD multivariate: 4 boundaries, 1.01s
+      t=542 (2020-03-02), 90% CI: [532, 538], severity: 0.989
+      t=599 (2020-05-21), 90% CI: [596, 602], severity: 1.000
+      t=1199 (2022-10-07), 90% CI: [598, 738], severity: 1.000
+      t=1445 (2023-10-02), 90% CI: [1382, 1439], severity: 0.886
 
-# %%
+
+### 2c: MMD -- Univariate (log returns)
+
+
+```python
 from kta import rbf
 from regime_detection import (
     find_regime_boundaries,
@@ -290,11 +397,15 @@ all_results.append(
 )
 
 print(f"MMD univariate: {len(mmd_uni_boundaries)} boundaries, {runtime_mmd_uni:.2f}s")
+```
 
-# %% [markdown]
-# ### 2d: MMD -- Multivariate (log OHLCV)
+    MMD univariate: 1 boundaries, 7.90s
 
-# %%
+
+### 2d: MMD -- Multivariate (log OHLCV)
+
+
+```python
 t0 = time.perf_counter()
 
 sigma_multi_med = np.median(np.abs(signal_multi - np.median(signal_multi)))
@@ -327,21 +438,24 @@ all_results.append(
 )
 
 print(f"MMD multivariate: {len(mmd_multi_boundaries)} boundaries, {runtime_mmd_multi:.2f}s")
+```
 
-# %% [markdown]
-# ---
-# ## S3 -- Results and Visualization
+    MMD multivariate: 43 boundaries, 8.63s
 
-# %% [markdown]
-# ### Main panel figure
-#
-# Four vertically stacked panels with shared date axis:
-# 1. Price + boundary lines (all four configs)
-# 2. MMD z-scores (uni + multi)
-# 3. BOCPD expected run length (uni + multi) -- sharp drops indicate changepoints
-# 4. Known events as shaded regions
 
-# %%
+---
+## S3 -- Results and Visualization
+
+### Main panel figure
+
+Four vertically stacked panels with shared date axis:
+1. Price + boundary lines (all four configs)
+2. MMD z-scores (uni + multi)
+3. BOCPD expected run length (uni + multi) -- sharp drops indicate changepoints
+4. Known events as shaded regions
+
+
+```python
 COLOR_MMD = "#534AB7"
 COLOR_BOCPD = "#D85A30"
 
@@ -420,14 +534,21 @@ for label, (start, end) in KNOWN_EVENTS.items():
 plt.tight_layout()
 save_fig(fig, "main_panel.png")
 plt.show()
+```
 
-# %% [markdown]
-# ### Validation table
-#
-# For each known event x each config: detected (yes/no), days offset from
-# event start, signal strength at peak within the event window.
 
-# %%
+    
+![png](comparison_files/comparison_19_0.png)
+    
+
+
+### Validation table
+
+For each known event x each config: detected (yes/no), days offset from
+event start, signal strength at peak within the event window.
+
+
+```python
 validation_records = []
 
 for event_name, (ev_start, ev_end) in KNOWN_EVENTS.items():
@@ -466,14 +587,146 @@ for event_name, (ev_start, ev_end) in KNOWN_EVENTS.items():
 
 validation_df = pd.DataFrame(validation_records).set_index("Event")
 validation_df
+```
 
-# %% [markdown]
-# ### Sensitivity sweeps
 
-# %% [markdown]
-# #### MMD window size sweep (multivariate signal)
 
-# %%
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>BOCPD univariate | detected</th>
+      <th>BOCPD univariate | offset (days)</th>
+      <th>BOCPD univariate | peak signal</th>
+      <th>BOCPD multivariate | detected</th>
+      <th>BOCPD multivariate | offset (days)</th>
+      <th>BOCPD multivariate | peak signal</th>
+      <th>MMD univariate | detected</th>
+      <th>MMD univariate | offset (days)</th>
+      <th>MMD univariate | peak signal</th>
+      <th>MMD multivariate | detected</th>
+      <th>MMD multivariate | offset (days)</th>
+      <th>MMD multivariate | peak signal</th>
+    </tr>
+    <tr>
+      <th>Event</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>COVID crash</th>
+      <td>N</td>
+      <td>197</td>
+      <td>114.05</td>
+      <td>Y</td>
+      <td>12</td>
+      <td>532.45</td>
+      <td>Y</td>
+      <td>1</td>
+      <td>19.23</td>
+      <td>Y</td>
+      <td>8</td>
+      <td>32.47</td>
+    </tr>
+    <tr>
+      <th>COVID recovery</th>
+      <td>N</td>
+      <td>163</td>
+      <td>62.31</td>
+      <td>Y</td>
+      <td>-22</td>
+      <td>593.01</td>
+      <td>N</td>
+      <td>-33</td>
+      <td>4.52</td>
+      <td>Y</td>
+      <td>-5</td>
+      <td>30.44</td>
+    </tr>
+    <tr>
+      <th>2022 drawdown</th>
+      <td>Y</td>
+      <td>31</td>
+      <td>245.20</td>
+      <td>Y</td>
+      <td>277</td>
+      <td>592.72</td>
+      <td>N</td>
+      <td>-683</td>
+      <td>2.34</td>
+      <td>Y</td>
+      <td>10</td>
+      <td>28.59</td>
+    </tr>
+    <tr>
+      <th>2022 bottom</th>
+      <td>Y</td>
+      <td>29</td>
+      <td>251.97</td>
+      <td>N</td>
+      <td>-5</td>
+      <td>535.97</td>
+      <td>N</td>
+      <td>-965</td>
+      <td>2.38</td>
+      <td>Y</td>
+      <td>19</td>
+      <td>17.55</td>
+    </tr>
+    <tr>
+      <th>2023 acceleration</th>
+      <td>N</td>
+      <td>-160</td>
+      <td>192.72</td>
+      <td>Y</td>
+      <td>1</td>
+      <td>273.99</td>
+      <td>N</td>
+      <td>-1319</td>
+      <td>3.57</td>
+      <td>Y</td>
+      <td>-13</td>
+      <td>22.75</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+### Sensitivity sweeps
+
+#### MMD window size sweep (multivariate signal)
+
+
+```python
 window_sizes = [20, 30, 40, 60]
 mmd_sweep_results = []
 
@@ -509,11 +762,20 @@ for w in window_sizes:
 mmd_sweep_df = pd.DataFrame(mmd_sweep_results)
 print("MMD window size sweep (multivariate signal):")
 print(mmd_sweep_df.to_string(index=False))
+```
 
-# %% [markdown]
-# #### BOCPD hazard rate sweep (multivariate signal)
+    MMD window size sweep (multivariate signal):
+     window  n_boundaries  mean_abs_offset  runtime_s
+         20            25             17.2   6.587608
+         30            42             11.0   8.776597
+         40            53             11.8  10.701447
+         60            74             27.0  29.388475
 
-# %%
+
+#### BOCPD hazard rate sweep (multivariate signal)
+
+
+```python
 hazard_lambdas = [50, 100, 200]
 bocpd_sweep_results = []
 
@@ -552,11 +814,19 @@ for lam in hazard_lambdas:
 bocpd_sweep_df = pd.DataFrame(bocpd_sweep_results)
 print("BOCPD hazard rate sweep (multivariate signal):")
 print(bocpd_sweep_df.to_string(index=False))
+```
 
-# %% [markdown]
-# #### Sensitivity sweep visualization
+    BOCPD hazard rate sweep (multivariate signal):
+     hazard_lambda  n_boundaries  mean_abs_offset  runtime_s
+                50             5             63.8   1.004375
+               100             4             63.4   0.973860
+               200             4             63.4   0.932760
 
-# %%
+
+#### Sensitivity sweep visualization
+
+
+```python
 fig, axes = plt.subplots(1, 2, figsize=(14, 4))
 
 # MMD sweep
@@ -586,20 +856,25 @@ ax1_twin.set_ylabel("Mean |Offset| from Events (days)")
 plt.tight_layout()
 save_fig(fig, "sensitivity_sweeps.png")
 plt.show()
+```
 
 
-# %% [markdown]
-# ---
-# ## S4 -- Comparison and Discussion
+    
+![png](comparison_files/comparison_28_0.png)
+    
 
-# %% [markdown]
-# ### Normalized signal overlay
-#
-# Both continuous signals (MMD z-score and BOCPD expected run length) min-max
-# normalized to [0, 1] on the same plot. The BOCPD signal is inverted so that
-# peaks (short run lengths = likely changepoints) align with MMD z-score peaks.
 
-# %%
+---
+## S4 -- Comparison and Discussion
+
+### Normalized signal overlay
+
+Both continuous signals (MMD z-score and BOCPD expected run length) min-max
+normalized to [0, 1] on the same plot. The BOCPD signal is inverted so that
+peaks (short run lengths = likely changepoints) align with MMD z-score peaks.
+
+
+```python
 def minmax_normalize(s):
     """Min-max normalize a Series to [0, 1]."""
     smin, smax = s.min(), s.max()
@@ -635,11 +910,18 @@ ax.legend(loc="upper right", fontsize=8, framealpha=0.9)
 plt.tight_layout()
 save_fig(fig, "normalized_overlay.png")
 plt.show()
+```
 
-# %% [markdown]
-# ### Runtime comparison
 
-# %%
+    
+![png](comparison_files/comparison_31_0.png)
+    
+
+
+### Runtime comparison
+
+
+```python
 runtime_df = pd.DataFrame(
     [
         {"Method": r["name"], "Runtime (s)": f"{r['runtime_seconds']:.2f}"}
@@ -647,86 +929,89 @@ runtime_df = pd.DataFrame(
     ]
 )
 print(runtime_df.to_string(index=False))
+```
 
-# %% [markdown]
-# ### Assumptions comparison
-#
-# | Aspect | BOCPD | MMD |
-# |--------|-------|-----|
-# | **Distributional assumption** | Gaussian (NIG univariate / NIW multivariate) | None (characteristic kernel) |
-# | **Online capable** | Yes (by design) | No (requires full windows) |
-# | **Output type** | P(changepoint) in [0,1] with credible intervals | z-score from permutation null |
-# | **Key tuning parameters** | Hazard rate lambda, prior hyperparameters | Window size, kernel bandwidth, threshold |
-# | **Multivariate** | Via NIW (models full covariance) | Native (kernel on feature vectors) |
-# | **Computational cost** | Fast (closed-form conjugate updates) | Expensive (permutation test per window) |
+                Method Runtime (s)
+      BOCPD univariate        5.82
+    BOCPD multivariate        1.01
+        MMD univariate        7.90
+      MMD multivariate        8.63
 
-# %% [markdown]
-# ### Discussion
-#
-# Commentary below is based on the experimental results above. See the main
-# panel figure, validation table, and sensitivity sweeps for supporting evidence.
 
-# %% [markdown]
-# **Feature effect (comparing rows):**
-#
-# Adding multivariate features (log OHLCV) has opposite effects on the two
-# methods. For BOCPD, moving from univariate to multivariate *reduces*
-# sensitivity (9 boundaries down to 4). The NIW model must explain
-# covariance across 5 dimensions, so only clear distributional shifts
-# survive the higher-dimensional prior inertia. For MMD, multivariate
-# input *dramatically increases* sensitivity (1 boundary up to 43). The
-# RBF kernel naturally captures joint distributional differences across
-# all features, and the richer signal surface means more windows exhibit
-# statistically significant MMD statistics. This asymmetry is the most
-# striking result of the 2x2 design: the same features make a parametric
-# model more conservative and a nonparametric test more liberal.
+### Assumptions comparison
 
-# %% [markdown]
-# **Framework effect (comparing columns):**
-#
-# On univariate log returns, BOCPD detects 9 change points scattered across
-# the series while MMD finds only 1 (the COVID crash onset). BOCPD's online
-# updating means it reacts to any shift in the running mean/variance
-# estimate, including moderate volatility regime changes in 2018, 2022,
-# and 2023 that the MMD permutation test does not flag at a z-score
-# threshold of 10. On multivariate features the picture is more nuanced:
-# BOCPD multivariate finds 4 boundaries (COVID crash and recovery in 2020,
-# plus shifts in late 2022 and late 2023), while MMD multivariate finds 43
-# spread throughout the series. BOCPD's parametric Gaussian assumption
-# concentrates detections on the sharpest distributional breaks, while
-# MMD, being distribution-free, treats any detectable difference between
-# adjacent windows as a potential boundary.
-#
-# In the validation table, MMD multivariate is the only configuration that
-# detects all five known events, with offsets generally under 20 trading
-# days. BOCPD multivariate catches 4 of 5 (missing only the 2022 bottom),
-# while BOCPD univariate catches 2 of 5 (2022 drawdown and bottom).
+| Aspect | BOCPD | MMD |
+|--------|-------|-----|
+| **Distributional assumption** | Gaussian (NIG univariate / NIW multivariate) | None (characteristic kernel) |
+| **Online capable** | Yes (by design) | No (requires full windows) |
+| **Output type** | P(changepoint) in [0,1] with credible intervals | z-score from permutation null |
+| **Key tuning parameters** | Hazard rate lambda, prior hyperparameters | Window size, kernel bandwidth, threshold |
+| **Multivariate** | Via NIW (models full covariance) | Native (kernel on feature vectors) |
+| **Computational cost** | Fast (closed-form conjugate updates) | Expensive (permutation test per window) |
 
-# %% [markdown]
-# **Practical takeaways:**
-#
-# - **BOCPD is best suited for real-time monitoring** of a univariate signal
-#   (e.g., streaming returns) where you want calibrated uncertainty and
-#   credible intervals around each detected change point. With r_max set,
-#   both univariate (~6s) and multivariate (~1s) are fast on 1500
-#   observations. The multivariate NIW model is actually faster because
-#   it detects fewer run lengths to track.
-#
-# - **MMD multivariate is the strongest offline detector** in this
-#   comparison, catching all five known events. However, 43 boundaries over
-#   6 years suggests it may be over-sensitive at a threshold of 10 -- the
-#   sensitivity sweep shows that boundary count scales with window size
-#   (25 to 74 boundaries for windows 20 to 60). Practitioners should tune
-#   the threshold or apply post-hoc filtering (e.g., minimum severity or
-#   gap constraints).
-#
-# - **Combining both methods** may be the most robust strategy: use BOCPD
-#   for real-time alerting (high specificity, low false-positive rate on
-#   univariate data) and MMD for periodic offline review (high sensitivity,
-#   catches subtler multivariate shifts that BOCPD misses).
-#
-# - **The hazard rate sweep** shows BOCPD multivariate is insensitive to
-#   lambda in the tested range (50-200): it finds 4-5 boundaries with
-#   ~63 days mean offset from known events. The stability across lambda
-#   values indicates the NIW model's posterior updates, not the hazard
-#   prior, are the binding constraint on detection timing.
+### Discussion
+
+Commentary below is based on the experimental results above. See the main
+panel figure, validation table, and sensitivity sweeps for supporting evidence.
+
+**Feature effect (comparing rows):**
+
+Adding multivariate features (log OHLCV) has opposite effects on the two
+methods. For BOCPD, moving from univariate to multivariate *reduces*
+sensitivity (9 boundaries down to 4). The NIW model must explain
+covariance across 5 dimensions, so only clear distributional shifts
+survive the higher-dimensional prior inertia. For MMD, multivariate
+input *dramatically increases* sensitivity (1 boundary up to 43). The
+RBF kernel naturally captures joint distributional differences across
+all features, and the richer signal surface means more windows exhibit
+statistically significant MMD statistics. This asymmetry is the most
+striking result of the 2x2 design: the same features make a parametric
+model more conservative and a nonparametric test more liberal.
+
+**Framework effect (comparing columns):**
+
+On univariate log returns, BOCPD detects 9 change points scattered across
+the series while MMD finds only 1 (the COVID crash onset). BOCPD's online
+updating means it reacts to any shift in the running mean/variance
+estimate, including moderate volatility regime changes in 2018, 2022,
+and 2023 that the MMD permutation test does not flag at a z-score
+threshold of 10. On multivariate features the picture is more nuanced:
+BOCPD multivariate finds 4 boundaries (COVID crash and recovery in 2020,
+plus shifts in late 2022 and late 2023), while MMD multivariate finds 43
+spread throughout the series. BOCPD's parametric Gaussian assumption
+concentrates detections on the sharpest distributional breaks, while
+MMD, being distribution-free, treats any detectable difference between
+adjacent windows as a potential boundary.
+
+In the validation table, MMD multivariate is the only configuration that
+detects all five known events, with offsets generally under 20 trading
+days. BOCPD multivariate catches 4 of 5 (missing only the 2022 bottom),
+while BOCPD univariate catches 2 of 5 (2022 drawdown and bottom).
+
+**Practical takeaways:**
+
+- **BOCPD is best suited for real-time monitoring** of a univariate signal
+  (e.g., streaming returns) where you want calibrated uncertainty and
+  credible intervals around each detected change point. With r_max set,
+  both univariate (~6s) and multivariate (~1s) are fast on 1500
+  observations. The multivariate NIW model is actually faster because
+  it detects fewer run lengths to track.
+
+- **MMD multivariate is the strongest offline detector** in this
+  comparison, catching all five known events. However, 43 boundaries over
+  6 years suggests it may be over-sensitive at a threshold of 10 -- the
+  sensitivity sweep shows that boundary count scales with window size
+  (25 to 74 boundaries for windows 20 to 60). Practitioners should tune
+  the threshold or apply post-hoc filtering (e.g., minimum severity or
+  gap constraints).
+
+- **Combining both methods** may be the most robust strategy: use BOCPD
+  for real-time alerting (high specificity, low false-positive rate on
+  univariate data) and MMD for periodic offline review (high sensitivity,
+  catches subtler multivariate shifts that BOCPD misses).
+
+- **The hazard rate sweep** shows BOCPD multivariate is insensitive to
+  lambda in the tested range (50-200): it finds 4-5 boundaries with
+  ~63 days mean offset from known events. The stability across lambda
+  values indicates the NIW model's posterior updates, not the hazard
+  prior, are the binding constraint on detection timing.

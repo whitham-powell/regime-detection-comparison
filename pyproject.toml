@@ -20,6 +20,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "jupytext",
+    "nbconvert",
+    "ipykernel",
     "pre-commit",
     "black",
     "isort",
@@ -27,6 +29,9 @@ dev = [
 
 [tool.hatch.metadata]
 allow-direct-references = true
+
+[tool.uv]
+package = false
 
 [build-system]
 requires = ["hatchling"]
