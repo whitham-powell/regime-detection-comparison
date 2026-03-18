@@ -10,6 +10,7 @@ sync: ## Sync .py and .ipynb via jupytext
 
 plots: ## Execute notebooks and save figures
 	SAVE_FIGURES=1 $(UV_RUN) jupytext --to notebook --execute notebooks/comparison.py --output notebooks/comparison.ipynb
+	SAVE_FIGURES=1 $(UV_RUN) jupytext --to notebook --execute notebooks/comparison_synthetic.py --output notebooks/comparison_synthetic.ipynb
 
 markdown: ## Execute notebooks and render as markdown with figures
 	$(UV_RUN) jupyter nbconvert --to markdown --execute notebooks/*.ipynb --output-dir notebooks/
