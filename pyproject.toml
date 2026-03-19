@@ -10,7 +10,7 @@ readme = "README.md"
 dependencies = [
     "finfeatures[yfinance] @ git+https://github.com/whitham-powell/finfeatures",
     "regime-detection @ git+https://github.com/whitham-powell/mmd-regime-detection",
-    "bocpd @ git+https://github.com/whitham-powell/bocpd-regime-detection",
+    "bocpd @ git+https://github.com/whitham-powell/bocpd-regime-detection@v0.1.0",
     "matplotlib",
     "scikit-learn",
     "numpy",

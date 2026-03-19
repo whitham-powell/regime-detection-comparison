@@ -118,7 +118,7 @@ css = [
 [[package]]
 name = "bocpd"
 version = "0.1.0"
-source = { git = "https://github.com/whitham-powell/bocpd-regime-detection#de51591dd2ea82e09f11008f158128fc30e6ccb7" }
+source = { git = "https://github.com/whitham-powell/bocpd-regime-detection?rev=v0.1.0#4545f0a9deeba64c2247912fff887e014b6759bf" }
 dependencies = [
     { name = "finfeatures", extra = ["yfinance"] },
     { name = "matplotlib" },
@@ -2414,7 +2414,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "black", marker = "extra == 'dev'" },
-    { name = "bocpd", git = "https://github.com/whitham-powell/bocpd-regime-detection" },
+    { name = "bocpd", git = "https://github.com/whitham-powell/bocpd-regime-detection?rev=v0.1.0" },
     { name = "finfeatures", extras = ["yfinance"], git = "https://github.com/whitham-powell/finfeatures" },
     { name = "ipykernel" },
     { name = "isort", marker = "extra == 'dev'" },
